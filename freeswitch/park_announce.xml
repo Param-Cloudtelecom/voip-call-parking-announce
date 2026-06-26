@@ -1,0 +1,32 @@
+<!--
+  Call parking + park announce dialplan extension for FreeSWITCH.
+
+  Standard call parking (mod_fifo / valet_park) puts a call on hold against
+  a slot number; anyone can pick it up by dialing that slot back. The gap
+  in a stock setup is that nobody automatically *knows* a call was parked -
+  someone has to be told, manually, which slot to check. This extension
+  closes that gap: park the call, then immediately page an announcement
+  naming the slot over the overhead paging group (see ../../multicast-paging-system).
+-->
+<include>
+  <context name="acme">
+
+    <extension name="park_with_announce">
+      <condition field="destination_number" expression="^7(\d{2})$">
+        <action application="set" data="tenant_id=acme"/>
+        <action application="set" data="park_slot=$1"/>
+
+        <!-- valet_park: FreeSWITCH's modern parking lot (replaces the
+             older fifo-based park pattern) -->
+        <action application="valet_park" data="acme_parking_lot $1"/>
+      </condition>
+    </extension>
+
+    <!-- Fired by valet_park's parked event - see park_announce.lua for
+         the actual announcement logic, hooked via event_handlers.conf.xml -->
+    <extension name="park_announce_hook">
+      <condition field="${valet_hold_music}" expression="^$"/>
+    </extension>
+
+  </context>
+</include>
